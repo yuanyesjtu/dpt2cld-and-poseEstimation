@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window_fit_size (0, 0, 960, 640, -1, -1, WindowHandle)</l>
+<c></c>
+<c>* 1440*1080, 激光点云（离相机更近）</c>
+<l>CameraIntriParam:= [1.8338822285607639e+03, 0., 6.7819007616266606e+02, \
+                    0., 1.8320116915948997e+03, 5.9451075648547658e+02, \
+                    0., 0., 1. ]</l>
+<c></c>
+<c>* 设置路径</c>
+<l>dpt_path := './dpt/'</l>
+<l>cld_path := './cld/'</l>
+<l>box_path := './box/'</l>
+<l>par_path := './cameraPara/'</l>
+<c></c>
+<c>* 获取文件列表</c>
+<l>list_image_files (dpt_path, 'png', [], ImageFiles)</l>
+<l>list_image_files (box_path, 'txt', [], TxtFiles)</l>
+<c></c>
+<l>for Index := 0 to |ImageFiles| - 1 by 1</l>
+<c>   </c>
+<c>    *读入图片</c>
+<l>    *read_object_model_3d ('E:/活塞项目/深度图转点云+位姿估计/103718.om3', 'm', [], [], Model3DOM3, Status)</l>
+<l>    read_image (Image, ImageFiles[Index])</l>
+<c>    </c>
+<c>    *读入txt</c>
+<l>    open_file (TxtFiles[Index], 'input', FileHandle)</l>
+<l>    fread_line (FileHandle, OutLine, IsEOF)</l>
+<l>    tuple_split (OutLine, '\n', OutLine)</l>
+<l>    tuple_split (OutLine, ', ', OutLine)</l>
+<l>    tuple_number (OutLine, OutLine)</l>
+<l>    close_file (FileHandle)</l>
+<c>    </c>
+<c>    *创建新的相机内参</c>
+<l>    CameraIntriParamNew := CameraIntriParam</l>
+<l>    CameraIntriParamNew[2] := CameraIntriParam[2] - OutLine[0]</l>
+<l>    CameraIntriParamNew[5] := CameraIntriParam[5] - OutLine[1]</l>
+<c>    </c>
+<c>    *获取图片尺寸</c>
+<l>    get_image_size (Image, Width, Height)</l>
+<c>    </c>
+<c>    *从区域生成所有的像素坐标</c>
+<l>    gen_rectangle1 (Rectangle, 0, 0, Height-1,Width-1)</l>
+<l>    get_region_points(Rectangle, Y, X)</l>
+<c>    </c>
+<c>    *读取图像的全部像素</c>
+<l>    get_grayval(Image, Y, X, Z)</l>
+<c>    </c>
+<c>    *XYZ转换到三维坐标</c>
+<l>    X := (X- CameraIntriParamNew[2])/CameraIntriParamNew[0]</l>
+<l>    Y := (Y- CameraIntriParamNew[5])/CameraIntriParamNew[4]</l>
+<l>    tuple_mult (X, Z, X)</l>
+<l>    tuple_mult (Y, Z, Y)</l>
+<c>    </c>
+<c>    *创建点云</c>
+<l>    gen_object_model_3d_from_points(X, Y, Z, ObjectModel3D)</l>
+<c>    </c>
+<c>    *半径滤波</c>
+<l>    distance := 10</l>
+<l>    select_points_object_model_3d (ObjectModel3D, 'num_neighbors ' + distance, 100, 2000, ObjectModel3D)</l>
+<c>    </c>
+<c>    *显示结果</c>
+<l>    *visualize_object_model_3d (WindowHandle, [ObjectModel3D, Model3DOM3], [], [], ['color_0','color_1'], ['green','red'], [], [], [], PoseOut)</l>
+<l>    *visualize_object_model_3d (WindowHandle, ObjectModel3D, [], [], [], [], [], [], [], PoseOut)</l>
+<c>    </c>
+<c>    *保存结果</c>
+<l>    parse_filename (ImageFiles[Index], BaseName, Extension, Directory)</l>
+<l>    write_object_model_3d (ObjectModel3D, 'ply', cld_path + BaseName, [], [])</l>
+<c>    </c>
+<l>    par_name := par_path + BaseName + '_para.txt'</l>
+<l>    open_file (par_name, 'output', FileHandle)</l>
+<l>    for Index1 := 0 to |CameraIntriParam|-1 by 1</l>
+<l>        fwrite_string (FileHandle, CameraIntriParamNew[Index1])</l>
+<l>        fwrite_string (FileHandle, ',')</l>
+<l>    endfor</l>
+<l>    close_file (FileHandle)</l>
+<l>endfor</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

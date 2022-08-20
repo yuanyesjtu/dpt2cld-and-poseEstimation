@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="17.12">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 960, 640, 'black', WindowHandle)</l>
+<c></c>
+<c></c>
+<c>******************************************</c>
+<c>* 设置相机参数</c>
+<c>******************************************</c>
+<l>focus := 0.006</l>
+<l>CameraIntriParam:= [1.8338822285607639e+03, 0., 6.7819007616266606e+02, \
+                    0., 1.8320116915948997e+03, 5.9451075648547658e+02, \
+                    0., 0., 1. ]</l>
+<c></c>
+<c></c>
+<c>********************************************</c>
+<c>* 设置路径</c>
+<c>********************************************</c>
+<l>model_path := './model/'</l>
+<l>scene_path := './scene/'</l>
+<l>result_path := './pose/'</l>
+<c></c>
+<c></c>
+<c>********************************************</c>
+<c>* 读入工件数据</c>
+<c>********************************************</c>
+<l>component_name := 'obj_16.ply'</l>
+<l>read_object_model_3d (model_path + component_name, 'm', [], [], Model3D, ModelStatus)</l>
+<c></c>
+<c></c>
+<c>********************************************</c>
+<c>* 保存model_info</c>
+<c>********************************************</c>
+<l>open_file (result_path + 'model_info.txt', 'output', FileHandle)</l>
+<l>get_object_model_3d_params (Model3D, 'diameter', diameter)</l>
+<l>fwrite_string (FileHandle, '1: {diameter: ' + diameter + ', ')</l>
+<l>get_object_model_3d_params (Model3D, 'bounding_box1', bounding)</l>
+<l>bounding[3] := bounding[3] - bounding[0]</l>
+<l>bounding[4] := bounding[4] - bounding[1]</l>
+<l>bounding[5] := bounding[5] - bounding[2]</l>
+<l>fwrite_string (FileHandle, 'min_x: ' + bounding[0] + ', min_y: ' + bounding[1] + \
+                           ', min_z: ' + bounding[2] + ', size_x: ' + bounding[3] + \
+                           ', size_y: ' + bounding[4] + ', size_z: ' + bounding[5] + '}')</l>
+<l>close_file(FileHandle)</l>
+<c></c>
+<c></c>
+<c>********************************************</c>
+<c>* 创建表面模型</c>
+<c>********************************************</c>
+<l>create_surface_model (Model3D, 0.03, [], [], SurfaceModelID)</l>
+<c></c>
+<c></c>
+<c>********************************************</c>
+<c>* 获取scene文件列表</c>
+<c>********************************************</c>
+<l>list_image_files (scene_path, 'ply', [], SceneFiles)</l>
+<c></c>
+<c></c>
+<c>********************************************</c>
+<c>* 逐个场景进行匹配</c>
+<c>********************************************</c>
+<l>num_matches := 1</l>
+<l>for Index := 0 to |SceneFiles| - 1 by 1</l>
+<c></c>
+<c>    * 读入Scene数据</c>
+<l>    read_object_model_3d (SceneFiles[Index], 'm', [], [], Scene3D, SenceStatus)</l>
+<c>    </c>
+<c>    * Model与Scene匹配</c>
+<l>    find_surface_model (SurfaceModelID, Scene3D, 0.03, 0.2, 0.15, 'false', ['num_matches'], [num_matches], Pose, Score, SurfaceMatchingResultID)</l>
+<c>    </c>
+<c>    * 解析路径</c>
+<l>    parse_filename (SceneFiles[Index], BaseName, Extension, Directory)</l>
+<c>    </c>
+<c>    * 可视化</c>
+<l>    if (|Pose| &gt; 0)</l>
+<l>        dev_clear_window ()</l>
+<l>        rigid_trans_object_model_3d (Model3D, Pose, Model3DRigidTrans)</l>
+<l>        *visualize_object_model_3d (WindowHandle, [Scene3D,Model3DRigidTrans], [], [], ['color_attrib_0','lut_0','alpha'], ['coord_z','rainbow',0.8], [], [], [], PoseOut)</l>
+<c></c>
+<c>        * 读入图片</c>
+<l>        gray_image_path := scene_path + BaseName + '.png'</l>
+<l>        read_image (gray_image, gray_image_path)</l>
+<l>        get_image_size (gray_image, width, height)</l>
+<c>        </c>
+<c>        * 读入偏移量</c>
+<l>        txt_file := scene_path + BaseName + '.txt'</l>
+<l>        open_file (txt_file, 'input', FileHandle)</l>
+<l>        fread_line (FileHandle, OutLine, IsEOF)</l>
+<l>        tuple_split (OutLine, '\n', OutLine)</l>
+<l>        tuple_split (OutLine, ', ', OutLine)</l>
+<l>        tuple_number (OutLine, OutLine)</l>
+<l>        close_file (FileHandle)</l>
+<c>        </c>
+<c>        *创建新的相机内参</c>
+<l>        CameraIntriParamNew := CameraIntriParam</l>
+<l>        CameraIntriParamNew[2] := CameraIntriParam[2] - OutLine[0]</l>
+<l>        CameraIntriParamNew[5] := CameraIntriParam[5] - OutLine[1]</l>
+<c>        </c>
+<l>        gen_cam_par_area_scan_division (focus, 0, focus/CameraIntriParamNew[0], focus/CameraIntriParamNew[4], CameraIntriParamNew[2], CameraIntriParamNew[5], width, height, CameraParam)</l>
+<l>        create_pose (0, 0.0, 0.0, 0, 0, 0, 'Rp+T', 'gba', 'point', WorldPose)</l>
+<c>        </c>
+<l>        for Index1 := 0 to |Model3DRigidTrans|-1 by 1</l>
+<c>            </c>
+<l>            dev_clear_window ()</l>
+<l>            dev_display (gray_image)</l>
+<l>            dev_set_line_width (2)</l>
+<l>            dev_set_color ('green')            </l>
+<c></c>
+<l>            project_object_model_3d (ModelContours, Model3DRigidTrans[Index1], CameraParam, WorldPose, [], [])</l>
+<l>            dev_display (ModelContours)</l>
+<c>            </c>
+<c>            </c>
+<c>            * 保存匹配图像</c>
+<l>            dump_window_image (Image, WindowHandle)</l>
+<l>            tuple_string(Index1, '0', string)</l>
+<l>            write_image (Image, 'png', 0, result_path + BaseName + '-' + string)</l>
+<c>            </c>
+<c>            * 保存匹配数据</c>
+<l>            Pose_tmp := Pose[Index1*7:Index1*7+6]</l>
+<l>            pose_to_hom_mat3d (Pose_tmp, HomMat3D)</l>
+<l>            create_matrix (3, 4, HomMat3D, MatrixID)</l>
+<l>            write_matrix (MatrixID, 'ascii', result_path + BaseName + '-HomMat3D-' + string + '.txt')</l>
+<l>        endfor</l>
+<l>        clear_object_model_3d (Model3DRigidTrans)</l>
+<l>    endif</l>
+<l>endfor</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>
