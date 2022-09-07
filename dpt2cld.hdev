@@ -4,12 +4,20 @@
 <interface/>
 <body>
 <l>dev_close_window ()</l>
-<l>dev_open_window_fit_size (0, 0, 960, 640, -1, -1, WindowHandle)</l>
+<l>dev_open_window_fit_size (0, 0, 640, 400, -1, -1, WindowHandle)</l>
 <c></c>
 <c>* 1440*1080, 激光点云（离相机更近）</c>
-<l>CameraIntriParam:= [1.8338822285607639e+03, 0., 6.7819007616266606e+02, \
+<l>*CameraIntriParam:= [1.8338822285607639e+03, 0., 6.7819007616266606e+02, \
                     0., 1.8320116915948997e+03, 5.9451075648547658e+02, \
                     0., 0., 1. ]</l>
+<c>* 1440*1080, 激光点云</c>
+<l>*CameraIntriParam:= [1.8440693596349724e+03, 0., 6.7440417400918170e+02, \
+                    0., 1.8459851368765890e+03, 5.7284620978273529e+02, \
+                    0., 0., 1.]</l>
+<c>* 1920*1200, 激光点云</c>
+<l>CameraIntriParam:= [2.0469706224381148e+03, 0., 9.6763433286520001e+02, \
+                    0., 2.0478469369076906e+03, 5.9191259105228153e+02, \
+                    0., 0., 1.]</l>
 <c></c>
 <c>* 设置路径</c>
 <l>dpt_path := './dpt/'</l>
@@ -24,7 +32,6 @@
 <l>for Index := 0 to |ImageFiles| - 1 by 1</l>
 <c>   </c>
 <c>    *读入图片</c>
-<l>    *read_object_model_3d ('E:/活塞项目/深度图转点云+位姿估计/103718.om3', 'm', [], [], Model3DOM3, Status)</l>
 <l>    read_image (Image, ImageFiles[Index])</l>
 <c>    </c>
 <c>    *读入txt</c>
@@ -60,24 +67,31 @@
 <l>    gen_object_model_3d_from_points(X, Y, Z, ObjectModel3D)</l>
 <c>    </c>
 <c>    *半径滤波</c>
-<l>    distance := 10</l>
-<l>    select_points_object_model_3d (ObjectModel3D, 'num_neighbors ' + distance, 100, 2000, ObjectModel3D)</l>
+<l>    *distance := 10</l>
+<l>    *select_points_object_model_3d (ObjectModel3D, 'num_neighbors ' + distance, 10, 10000, ObjectModel3D)</l>
+<c>     </c>
+<c>    *点云截取</c>
+<l>    select_points_object_model_3d (ObjectModel3D, 'point_coord_z', 1, 100000, ObjectModel3D)</l>
 <c>    </c>
 <c>    *显示结果</c>
-<l>    *visualize_object_model_3d (WindowHandle, [ObjectModel3D, Model3DOM3], [], [], ['color_0','color_1'], ['green','red'], [], [], [], PoseOut)</l>
 <l>    *visualize_object_model_3d (WindowHandle, ObjectModel3D, [], [], [], [], [], [], [], PoseOut)</l>
+<l>    disp_object_model_3d (WindowHandle, ObjectModel3D, [], [], [], [])</l>
+<l>    *wait_seconds (0.5)</l>
 <c>    </c>
 <c>    *保存结果</c>
-<l>    parse_filename (ImageFiles[Index], BaseName, Extension, Directory)</l>
-<l>    write_object_model_3d (ObjectModel3D, 'ply', cld_path + BaseName, [], [])</l>
-<c>    </c>
-<l>    par_name := par_path + BaseName + '_para.txt'</l>
-<l>    open_file (par_name, 'output', FileHandle)</l>
-<l>    for Index1 := 0 to |CameraIntriParam|-1 by 1</l>
-<l>        fwrite_string (FileHandle, CameraIntriParamNew[Index1])</l>
-<l>        fwrite_string (FileHandle, ',')</l>
-<l>    endfor</l>
-<l>    close_file (FileHandle)</l>
+<l>    get_object_model_3d_params (ObjectModel3D, 'num_points', num_points)</l>
+<l>    if (num_points &gt; 0)</l>
+<l>        parse_filename (ImageFiles[Index], BaseName, Extension, Directory)</l>
+<l>        write_object_model_3d (ObjectModel3D, 'ply', cld_path + BaseName, [], [])</l>
+<c>        </c>
+<l>        par_name := par_path + BaseName + '_para.txt'</l>
+<l>        open_file (par_name, 'output', FileHandle)</l>
+<l>        for Index1 := 0 to |CameraIntriParam|-1 by 1</l>
+<l>            fwrite_string (FileHandle, CameraIntriParamNew[Index1])</l>
+<l>            fwrite_string (FileHandle, ',')</l>
+<l>        endfor</l>
+<l>        close_file (FileHandle)</l>
+<l>    endif</l>
 <l>endfor</l>
 <c></c>
 <c></c>

@@ -4,17 +4,26 @@
 <interface/>
 <body>
 <l>dev_close_window ()</l>
-<l>dev_open_window (0, 0, 960, 640, 'black', WindowHandle)</l>
+<l>dev_open_window_fit_size (0, 0, 240, 240, -1, -1, WindowHandle)</l>
 <c></c>
 <c></c>
 <c>******************************************</c>
 <c>* 设置相机参数</c>
 <c>******************************************</c>
 <l>focus := 0.006</l>
-<l>CameraIntriParam:= [1.8338822285607639e+03, 0., 6.7819007616266606e+02, \
+<l>*CameraIntriParam:= [1.8338822285607639e+03, 0., 6.7819007616266606e+02, \
                     0., 1.8320116915948997e+03, 5.9451075648547658e+02, \
                     0., 0., 1. ]</l>
 <c></c>
+<c>* 1440*1080, 激光点云</c>
+<l>*CameraIntriParam:= [1.8440693596349724e+03, 0., 6.7440417400918170e+02, \
+                    0., 1.8459851368765890e+03, 5.7284620978273529e+02, \
+                    0., 0., 1.]</l>
+<c></c>
+<c>* 1920*1200, 激光点云</c>
+<l>CameraIntriParam:= [2.0469706224381148e+03, 0., 9.6763433286520001e+02, \
+                    0., 2.0478469369076906e+03, 5.9191259105228153e+02, \
+                    0., 0., 1.]</l>
 <c></c>
 <c>********************************************</c>
 <c>* 设置路径</c>
@@ -27,7 +36,7 @@
 <c>********************************************</c>
 <c>* 读入工件数据</c>
 <c>********************************************</c>
-<l>component_name := 'obj_16.ply'</l>
+<l>component_name := '50.ply'</l>
 <l>read_object_model_3d (model_path + component_name, 'm', [], [], Model3D, ModelStatus)</l>
 <c></c>
 <c></c>
@@ -69,7 +78,8 @@
 <l>    read_object_model_3d (SceneFiles[Index], 'm', [], [], Scene3D, SenceStatus)</l>
 <c>    </c>
 <c>    * Model与Scene匹配</c>
-<l>    find_surface_model (SurfaceModelID, Scene3D, 0.03, 0.2, 0.15, 'false', ['num_matches'], [num_matches], Pose, Score, SurfaceMatchingResultID)</l>
+<l>    surface_normals_object_model_3d (Scene3D, 'mls', 'mls_force_inwards', 'true', Scene3D)</l>
+<l>    find_surface_model (SurfaceModelID, Scene3D, 0.03, 0.3, 0.1, 'false', ['num_matches'], [num_matches], Pose, Score, SurfaceMatchingResultID)</l>
 <c>    </c>
 <c>    * 解析路径</c>
 <l>    parse_filename (SceneFiles[Index], BaseName, Extension, Directory)</l>
@@ -79,7 +89,9 @@
 <l>        dev_clear_window ()</l>
 <l>        rigid_trans_object_model_3d (Model3D, Pose, Model3DRigidTrans)</l>
 <l>        *visualize_object_model_3d (WindowHandle, [Scene3D,Model3DRigidTrans], [], [], ['color_attrib_0','lut_0','alpha'], ['coord_z','rainbow',0.8], [], [], [], PoseOut)</l>
-<c></c>
+<l>        disp_object_model_3d (WindowHandle, [Scene3D, Model3DRigidTrans], [], [], ['color_attrib_0','lut_0','alpha'], ['coord_z','rainbow',0.8])</l>
+<l>        *wait_seconds (0.1)</l>
+<c>         </c>
 <c>        * 读入图片</c>
 <l>        gray_image_path := scene_path + BaseName + '.png'</l>
 <l>        read_image (gray_image, gray_image_path)</l>
@@ -111,7 +123,7 @@
 <c></c>
 <l>            project_object_model_3d (ModelContours, Model3DRigidTrans[Index1], CameraParam, WorldPose, [], [])</l>
 <l>            dev_display (ModelContours)</l>
-<c>            </c>
+<l>            *wait_seconds (0.1)</l>
 <c>            </c>
 <c>            * 保存匹配图像</c>
 <l>            dump_window_image (Image, WindowHandle)</l>
